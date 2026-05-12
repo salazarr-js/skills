@@ -2,7 +2,7 @@
 > My personal curated list of agent skills
 
 ## Ideas
-- Product designer? help to brainstorming ideas and build right documents like a brief of the product
+- Product designer? help to brainstorming ideas and build right documents like a brief of the product (PRD)
   - https://productmasterynow.com/blog/510-how-to-use-these-ai-tools-to-create-a-product-brief-with-brian-collard/
   - https://www.notion.com/templates/productbrief
   
