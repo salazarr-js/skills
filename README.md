@@ -6,6 +6,7 @@
   - https://productmasterynow.com/blog/510-how-to-use-these-ai-tools-to-create-a-product-brief-with-brian-collard/
   - https://www.notion.com/templates/productbrief
 - **Resume** auditor
+- **document editor**
   
 ## Skills
 - https://github.com/vuejs-ai/skills
