@@ -111,8 +111,11 @@ Re-read your condensed version against the original and ask:
 - Have I introduced any new claims that weren't in the source?
 - Are figures, dates, names, and quoted text unchanged?
 - Does the tone match the original?
+- **Are all code blocks, tables, and structural content byte-identical to the source?** Count fence pairs, function definitions, object keys, table rows. If the source has 3 functions in a block, the output must have 3 functions in that block. If the source has a 5-row table, the output must have a 5-row table. Mismatches here are silent factual losses.
 
 If any answer is "no", revise before delivering. If you removed content whose importance is ambiguous, surface it in the "Possible omissions" section rather than silently dropping it.
+
+**Never retype code from memory.** When the output preserves a code block, copy it character-for-character from the source. Retyping introduces subtle drift (missing trailing commas, dropped functions, paraphrased comments) that violates the "verbatim" rule. The same goes for table cells, file paths, and identifiers - treat them as opaque tokens, not prose.
 
 ## Output format
 
