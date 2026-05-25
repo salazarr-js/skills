@@ -9,8 +9,17 @@
 - **document editor**
   
 ## Skills
+
 - https://github.com/vuejs-ai/skills
 - https://github.com/onmax/nuxt-skills
 - https://github.com/nuxt/ui/tree/v4/skills/nuxt-ui
 - https://github.com/vueuse/skills
 - https://github.com/antfu/skills
+
+### Design
+- https://impeccable.style/
+- https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+- https://github.com/gnurio/refactoring-ui-plugin
+- https://layers.jamiemill.com/
+- https://www.tasteskill.dev/
+- https://app.superdesign.dev/
