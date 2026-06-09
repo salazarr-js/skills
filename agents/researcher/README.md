@@ -49,6 +49,7 @@ flowchart TD
 | **Brave Search MCP** | 2k/mo | ⭐⭐⭐⭐ | Reliable, independent index. |
 | **Tavily MCP** | 1k/mo | ⭐⭐⭐⭐ | Built for AI agents, returns clean summaries. |
 | **DuckDuckGo MCP** | Unlimited | ⭐⭐⭐ | No API key, keyword-only, noisier results. |
+| **Jina Search (`s.jina.ai`)** | 10M tokens/signup (~1k searches) | ⭐⭐⭐ | Requires free API key (not keyless like r.jina.ai). 10k token minimum per query — less efficient than Exa. Use r.jina.ai for reading, not search. |
 
 ### Step 2-3 — Scrape + Clean
 
@@ -119,6 +120,7 @@ Goal: given a query, return the most relevant URLs with useful snippets.
 | S3 | Exa MCP | Free (1k/mo) |
 | S4 | Tavily MCP | Free (1k/mo) |
 | S5 | Brave Search MCP | Free (2k/mo) |
+| S6 | Jina Search (`s.jina.ai`) | Free key (10M tokens) |
 
 **How to test**
 
@@ -140,13 +142,26 @@ Run each tool against the same 3 queries. Compare raw results (do not fetch page
 
 | Tool | T1 Relevance | T1 Snippets | T2 Relevance | T2 Snippets | T3 Relevance | T3 Snippets | Winner? |
 |------|-------------|-------------|-------------|-------------|-------------|-------------|---------|
-| S1 - WebSearch | - | - | - | - | - | - | |
+| S1 - WebSearch | 5 | 4 | 5 | 4 | 5 | 4 | ✅ fallback |
 | S2 - DDG MCP | - | - | - | - | - | - | |
-| S3 - Exa MCP | - | - | - | - | - | - | |
+| S3 - Exa MCP | 5 | 5 | 5 | 5 | 5 | 5 | ✅ winner |
 | S4 - Tavily | - | - | - | - | - | - | |
 | S5 - Brave | - | - | - | - | - | - | |
+| S6 - Jina Search | ❌ not evaluated for search | — not recommended — requires API key; 10k token minimum/query vs Exa's ~1.5k; best used as r.jina.ai (reader) only |
 
-**Decision** → Pick 1 winner + 1 fallback. Update `Recommended Stack` below.
+**Full pipeline token comparison (WebSearch vs Exa, same 3 queries):**
+
+| | T1 Tokens | T1 Calls | T2 Tokens | T2 Calls | T3 Tokens | T3 Calls | Total |
+|---|---|---|---|---|---|---|---|
+| WebSearch | 18,254 | 9 | 15,374 | 9 | 17,104 | 9 | **50,732** |
+| Exa | 50,093 | 8 | 31,948 | 6 | 36,386 | 6 | **118,427** |
+
+**Key findings:**
+- Exa returns richer content per result (2.3x more tokens) but fewer tool calls and faster on factual/technical queries
+- Exa surfaces deeper signal: real-world migration stories, edge-case pricing, newer API details not in WebSearch snippets
+- WebSearch is the token-efficient fallback — quality is solid for broad surveys
+
+**Decision** → **Exa MCP = winner** (quality + speed). **WebSearch = fallback** (token budget or Exa limit hit). **Jina Search = not recommended** for search (requires API key, 10k token minimum per query, no highlights mode — 7-10x worse token efficiency than Exa). Use `r.jina.ai` for reading pages only.
 
 ---
 
@@ -179,53 +194,74 @@ Use the same URL across all three tools. Pick 3 URLs that represent different pa
 - **Noise ratio** (1-5) — how much nav/ad/footer junk survived?
 - **JS rendering** — did it work on the SPA? (yes/no)
 
+**Test URLs**
+
+| # | URL | Type |
+|---|-----|------|
+| U1 | `qdrant.tech/blog/what-is-a-vector-database/` | Article (JS-rendered, Next.js) |
+| U2 | `firecrawl.dev` | SPA (React/Next.js) |
+| U3 | `docs.exa.ai/reference/search` | API reference page |
+
 **Scrape scorecard**
 
-| Tool | U1 Tokens | U1 Quality | U2 Works | U3 Tokens | U3 Quality | Noise | Winner? |
-|------|-----------|-----------|----------|-----------|-----------|-------|---------|
-| C1 - Jina | - | - | - | - | - | - | |
-| C2 - Firecrawl | - | - | - | - | - | - | |
-| C3 - Raw fetch | - | - | - | - | - | - | |
+| Tool | U1 Chars | U1 ~Tokens | U2 Chars | U2 ~Tokens | U3 Chars | U3 ~Tokens | JS? | Winner? |
+|------|----------|-----------|----------|-----------|----------|-----------|-----|---------|
+| C1 - Jina | 37,734 | ~9,400 | 11,605 | ~2,900 | 16,174 | ~4,000 | ✅ | ✅ winner |
+| C2 - Firecrawl | 38,932 | ~9,700 | 28,867 | ~7,200 | 14,792 | ~3,700 | ✅ | ✅ fallback |
+| C3 - Raw fetch | 321 (redirect) | ❌ fails | 1,228,646 | ~307k | 668,005 | ~167k | ❌ | ❌ |
 
-**Decision** → Pick 1 winner + 1 fallback. Update `Recommended Stack` below.
+**Key findings:**
+- Raw HTML is unusable — U1 is just a redirect shell, U2/U3 return 100-300x more tokens than needed, no LLM can process that efficiently
+- Jina and Firecrawl are close on quality — both handle JS rendering, both return clean markdown
+- Jina wins on tokens — 2.5x fewer than Firecrawl on the SPA (U2), comparable on article and docs
+- Firecrawl advantage — `--only-main-content` flag strips more aggressively; better for complex auth/interaction flows
 
----
-
-### Full pipeline combos (run after step scores)
-
-Once you have step winners, test the two best combos end-to-end on all 3 queries:
-
-```
-Combo A  →  <search winner>  +  <scrape winner>     (best)
-Combo B  →  <search winner>  +  <scrape fallback>   (fallback)
-```
-
-**End-to-end scorecard**
-
-| Combo | T1 Quality | T1 Tokens | T2 Quality | T2 Tokens | T3 Quality | T3 Tokens | Verdict |
-|-------|-----------|-----------|-----------|-----------|-----------|-----------|---------|
-| A - Best | - | - | - | - | - | - | |
-| B - Fallback | - | - | - | - | - | - | |
+**Decision** → **Jina Reader = winner** (free, unlimited, fewer tokens). **Firecrawl = fallback** (when Jina strips too much or page needs JS interaction).
 
 ---
 
-## Recommended Starting Stack
+### Full pipeline results
 
+End-to-end runs with winning combo (Exa + Jina, built-in WebSearch baseline):
+
+| Combo | T1 Tokens | T1 Calls | T2 Tokens | T2 Calls | T3 Tokens | T3 Calls | Total |
+|-------|-----------|----------|-----------|----------|-----------|----------|-------|
+| **Exa + Jina** | 50,093 | 8 | 31,948 | 6 | 36,386 | 6 | **118,427** |
+| **WebSearch + Jina** | 18,254 | 9 | 15,374 | 9 | 17,104 | 9 | **50,732** |
+
+> Exa produces richer, deeper output but costs 2.3x more tokens. Use Exa for research quality, WebSearch when on token budget.
+
+---
+
+## Recommended Stack
+
+_Validated by benchmark — June 2026_
+
+### Quality mode (default)
 ```
-Step 1  →  Exa MCP           (semantic search, 1k free/mo)
-Step 2  →  Jina Reader       (r.jina.ai/<url>, unlimited, free)
-Step 3  →  LLM digest        (any: Claude, GPT, Codex, local)
-Step 4  →  Write to .md      (findings + references, compressed)
+Search  →  Exa MCP            semantic results, 1k free/mo
+Scrape  →  Jina Reader        r.jina.ai/<url>, unlimited, free
+Digest  →  LLM                any: Claude, GPT, Codex, local
+Store   →  Write to .md       compressed findings + sources
 ```
 
-### When to upgrade
+### Token budget mode
+```
+Search  →  Built-in WebSearch  unlimited, 2.3x cheaper than Exa
+Scrape  →  Jina Reader         same
+Digest  →  LLM                 same
+Store   →  Write to .md        same
+```
 
-| Trigger | Add |
-|---------|-----|
-| Exa limit hit (1k/mo) | Brave Search MCP (2k free) |
-| Jina fails on JS-heavy pages | Firecrawl free tier (1k pages/mo) |
-| Self-hosted needed | Crawl4AI (open source) |
-| High volume production | Firecrawl Hobby $16/mo or Bright Data |
+### Fallback escalation
+
+| Symptom | Swap in |
+|---------|---------|
+| Exa 1k/mo limit hit | Brave Search MCP (2k/mo free) |
+| Jina strips too much content | Firecrawl free tier (1k pages/mo) |
+| Page needs login / clicks | Firecrawl interact |
+| Self-hosted / air-gapped | Crawl4AI (open source, Apache 2.0) |
+| High volume production | Firecrawl Hobby $16/mo |
 
 ---
 
