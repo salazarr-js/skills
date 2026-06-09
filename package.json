@@ -1,0 +1,15 @@
+{
+  "name": "@slzr/skills",
+  "version": "0.1.0",
+  "description": "My personal curated collection of agent skills",
+  "type": "module",
+  "bin": {
+    "skills": "./install.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
