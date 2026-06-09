@@ -102,11 +102,27 @@ See [root README](../../README.md#install) for platform, scope, and manual curl 
 
 ---
 
-## Tool Evaluation Plan
+## Tool Evaluation
 
-Test each tool combination on 3 query types. Score: quality (1-5), token cost (1-5 lower=better), latency.
+The pipeline has two independent steps that can be swapped: **search** (Step 1) and **scrape+clean** (Steps 2-3). Evaluate each step separately, then combine the winners.
 
-### Test queries
+### Step 1 — Search tools
+
+Goal: given a query, return the most relevant URLs with useful snippets.
+
+**Tools to evaluate**
+
+| ID | Tool | Cost |
+|----|------|------|
+| S1 | Built-in WebSearch | Free (unlimited) |
+| S2 | DuckDuckGo MCP | Free (unlimited) |
+| S3 | Exa MCP | Free (1k/mo) |
+| S4 | Tavily MCP | Free (1k/mo) |
+| S5 | Brave Search MCP | Free (2k/mo) |
+
+**How to test**
+
+Run each tool against the same 3 queries. Compare raw results (do not fetch pages yet):
 
 | # | Query | Type |
 |---|-------|------|
@@ -114,30 +130,82 @@ Test each tool combination on 3 query types. Score: quality (1-5), token cost (1
 | T2 | "Exa API rate limits and pricing details" | Specific factual |
 | T3 | "how does Firecrawl handle JavaScript rendering" | Technical deep dive |
 
-### Combinations to test
+**What to score per tool per query**
+
+- **Relevance** (1-5) — are the top 5 URLs actually about the query?
+- **Snippet quality** (1-5) — do snippets answer the question without fetching?
+- **Freshness** (1-5) — are results from 2025-2026 or outdated?
+
+**Search scorecard**
+
+| Tool | T1 Relevance | T1 Snippets | T2 Relevance | T2 Snippets | T3 Relevance | T3 Snippets | Winner? |
+|------|-------------|-------------|-------------|-------------|-------------|-------------|---------|
+| S1 - WebSearch | - | - | - | - | - | - | |
+| S2 - DDG MCP | - | - | - | - | - | - | |
+| S3 - Exa MCP | - | - | - | - | - | - | |
+| S4 - Tavily | - | - | - | - | - | - | |
+| S5 - Brave | - | - | - | - | - | - | |
+
+**Decision** → Pick 1 winner + 1 fallback. Update `Recommended Stack` below.
+
+---
+
+### Step 2-3 — Scrape + Clean tools
+
+Goal: given a URL, return the cleanest, most token-efficient text for the LLM.
+
+**Tools to evaluate**
+
+| ID | Tool | Cost |
+|----|------|------|
+| C1 | Jina Reader (`r.jina.ai/<url>`) | Free (unlimited) |
+| C2 | Firecrawl MCP | Free (1k pages/mo) |
+| C3 | Raw WebFetch | Free (baseline) |
+
+**How to test**
+
+Use the same URL across all three tools. Pick 3 URLs that represent different page types:
+
+| # | URL type | Example |
+|---|----------|---------|
+| U1 | Simple article | A blog post or docs page |
+| U2 | JS-heavy SPA | A React/Next.js app page |
+| U3 | Long reference page | API docs or pricing page |
+
+**What to score per tool per URL**
+
+- **Token count** — count tokens in the returned text (lower = better)
+- **Content completeness** (1-5) — did it capture the key facts?
+- **Noise ratio** (1-5) — how much nav/ad/footer junk survived?
+- **JS rendering** — did it work on the SPA? (yes/no)
+
+**Scrape scorecard**
+
+| Tool | U1 Tokens | U1 Quality | U2 Works | U3 Tokens | U3 Quality | Noise | Winner? |
+|------|-----------|-----------|----------|-----------|-----------|-------|---------|
+| C1 - Jina | - | - | - | - | - | - | |
+| C2 - Firecrawl | - | - | - | - | - | - | |
+| C3 - Raw fetch | - | - | - | - | - | - | |
+
+**Decision** → Pick 1 winner + 1 fallback. Update `Recommended Stack` below.
+
+---
+
+### Full pipeline combos (run after step scores)
+
+Once you have step winners, test the two best combos end-to-end on all 3 queries:
 
 ```
-Combo A  →  Exa search + Jina Reader          (fully free)
-Combo B  →  DuckDuckGo MCP + Jina Reader      (fully free, keyword)
-Combo C  →  Exa search + Firecrawl scrape     (free tiers)
-Combo D  →  Built-in WebSearch + raw fetch    (baseline)
+Combo A  →  <search winner>  +  <scrape winner>     (best)
+Combo B  →  <search winner>  +  <scrape fallback>   (fallback)
 ```
 
-### Scorecard
+**End-to-end scorecard**
 
 | Combo | T1 Quality | T1 Tokens | T2 Quality | T2 Tokens | T3 Quality | T3 Tokens | Verdict |
 |-------|-----------|-----------|-----------|-----------|-----------|-----------|---------|
-| A - Exa + Jina | - | - | - | - | - | - | |
-| B - DDG + Jina | - | - | - | - | - | - | |
-| C - Exa + Firecrawl | - | - | - | - | - | - | |
-| D - Baseline | - | - | - | - | - | - | |
-
-### What to measure per run
-- Token count of final research doc
-- Token count of context used during research
-- Did it answer the query accurately?
-- Were sources cited with working links?
-- Time to complete
+| A - Best | - | - | - | - | - | - | |
+| B - Fallback | - | - | - | - | - | - | |
 
 ---
 
