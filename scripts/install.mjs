@@ -10,12 +10,14 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const AGENTS_DIR = join(__dirname, '..', 'agents');
 const REPO_RAW = 'https://raw.githubusercontent.com/salazarr-js/skills/main';
 
+const platformSourceDir = { claude: '.claude/agents', opencode: '.opencode/agents' };
+
 async function getAvailableAgents() {
-  const agentsDir = join(__dirname, 'agents');
-  if (!existsSync(agentsDir)) return ['researcher'];
-  const entries = await readdir(agentsDir, { withFileTypes: true });
+  if (!existsSync(AGENTS_DIR)) return ['slzr-researcher'];
+  const entries = await readdir(AGENTS_DIR, { withFileTypes: true });
   return entries.filter(e => e.isDirectory()).map(e => e.name);
 }
 
@@ -31,28 +33,21 @@ function resolveTargetDir(platform, scope) {
 }
 
 async function installAgent(agent, platform, scope) {
-  const platforms = platform === 'both' ? ['claude', 'opencode'] : [platform];
-  const results = [];
+  const targetDir = resolveTargetDir(platform, scope);
+  await mkdir(targetDir, { recursive: true });
 
-  for (const p of platforms) {
-    const targetDir = resolveTargetDir(p, scope);
-    await mkdir(targetDir, { recursive: true });
+  const dest = join(targetDir, `${agent}.md`);
+  const srcPath = join(__dirname, '..', platformSourceDir[platform], `${agent}.md`);
 
-    const dest = join(targetDir, `${agent}.md`);
-    const srcPath = join(__dirname, 'agents', agent, `${p}.md`);
-
-    if (existsSync(srcPath)) {
-      await copyFile(srcPath, dest);
-    } else {
-      const res = await fetch(`${REPO_RAW}/agents/${agent}/${p}.md`);
-      if (!res.ok) throw new Error(`Could not fetch ${agent}/${p}.md (${res.status})`);
-      await writeFile(dest, await res.text());
-    }
-
-    results.push({ platform: p, dest });
+  if (existsSync(srcPath)) {
+    await copyFile(srcPath, dest);
+  } else {
+    const res = await fetch(`${REPO_RAW}/${platformSourceDir[platform]}/${agent}.md`);
+    if (!res.ok) throw new Error(`Could not fetch ${platformSourceDir[platform]}/${agent}.md (${res.status})`);
+    await writeFile(dest, await res.text());
   }
 
-  return results;
+  return [{ platform, dest }];
 }
 
 async function main() {
@@ -69,16 +64,17 @@ async function main() {
 
   if (isCancel(selectedAgents)) { cancel('Cancelled.'); process.exit(0); }
 
-  const platform = await select({
+  const platforms = await multiselect({
     message: 'Platform',
     options: [
-      { value: 'both',      label: 'Both',      hint: 'Claude Code + OpenCode' },
-      { value: 'claude',    label: 'Claude Code' },
-      { value: 'opencode',  label: 'OpenCode' },
+      { value: 'claude',   label: 'Claude Code' },
+      { value: 'opencode', label: 'OpenCode' },
     ],
+    initialValues: ['claude', 'opencode'],
+    required: true,
   });
 
-  if (isCancel(platform)) { cancel('Cancelled.'); process.exit(0); }
+  if (isCancel(platforms)) { cancel('Cancelled.'); process.exit(0); }
 
   const scope = await select({
     message: 'Scope',
@@ -95,8 +91,10 @@ async function main() {
 
   const installed = [];
   for (const agent of selectedAgents) {
-    const results = await installAgent(agent, platform, scope);
-    installed.push(...results);
+    for (const p of platforms) {
+      const results = await installAgent(agent, p, scope);
+      installed.push(...results);
+    }
   }
 
   s.stop('Done!');

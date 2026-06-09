@@ -1,1 +1,0 @@
-../../agents/researcher/claude.md

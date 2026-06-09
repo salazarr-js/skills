@@ -8,32 +8,33 @@ Compatible with Claude Code, OpenCode, and Codex.
 
 ## Install
 
-Requires Node.js 18+.
+### Skills
+
+Via [skills.sh](https://skills.sh):
+
+```bash
+npx skills add salazarr-js/skills
+```
+
+### Agents
 
 ```bash
 npx github:salazarr-js/skills
 ```
 
-Interactive prompts let you pick:
-- Which agents to install (multi-select, all pre-selected)
-- Platform — Claude Code / OpenCode / both
-- Scope — global (all projects) or project (current dir only)
+Interactive prompts let you pick which agents, platform (Claude Code / OpenCode), and scope (global or project).
 
-### Manual (no Node.js)
-
-Replace `<agent>` with the agent name and `<platform>` with `claude` or `opencode`:
+#### Manual (no Node.js)
 
 ```bash
 # Claude Code — global
-curl -fsSL https://raw.githubusercontent.com/salazarr-js/skills/main/agents/<agent>/claude.md \
+curl -fsSL https://raw.githubusercontent.com/salazarr-js/skills/main/.claude/agents/<agent>.md \
   -o ~/.claude/agents/<agent>.md
 
 # OpenCode — global
-curl -fsSL https://raw.githubusercontent.com/salazarr-js/skills/main/agents/<agent>/opencode.md \
+curl -fsSL https://raw.githubusercontent.com/salazarr-js/skills/main/.opencode/agents/<agent>.md \
   -o ~/.config/opencode/agents/<agent>.md
 ```
-
-### Install paths
 
 | Scope | Claude Code | OpenCode |
 |-------|-------------|---------|
@@ -54,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/salazarr-js/skills/main/agents/<age
 
 | Name | Description | Platforms |
 |------|-------------|-----------|
-| [researcher](agents/researcher/) | Web research — searches, reads via Jina Reader, writes compressed findings to markdown | Claude Code, OpenCode |
+| [slzr-researcher](agents/slzr-researcher/) | Web research — searches, reads via Jina Reader, writes compressed findings to markdown | Claude Code, OpenCode |
 
 ## Skills
 
