@@ -95,11 +95,16 @@ See [root README](../../README.md#install) for platform, scope, and manual curl 
 
 ## Compatibility
 
-| Platform | File | Status |
-|----------|------|--------|
-| Claude Code | `claude.md` | ✅ |
-| OpenCode | `opencode.md` | ✅ |
-| Codex | `codex.md` | planned |
+| Platform | File | Model format | Status |
+|----------|------|-------------|--------|
+| Claude Code | `claude.md` | `sonnet` alias | ✅ |
+| OpenCode | `opencode.md` | `anthropic/claude-sonnet-4-20250514` | ✅ |
+| Codex | `codex.md` | — | planned |
+
+### Learn more about subagents
+
+- [Claude Code — Custom sub-agents](https://code.claude.com/docs/sub-agents) — frontmatter fields, scopes, model aliases, tools, permissions
+- [OpenCode — Agents](https://opencode.ai/docs/agents/) — `mode: subagent`, `provider/model-id` format, `@mention` invocation, permission rules
 
 ---
 
