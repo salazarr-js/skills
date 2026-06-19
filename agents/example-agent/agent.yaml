@@ -1,0 +1,39 @@
+# Single source of truth for all platform agent files.
+# Edit here, then run: pnpm generate
+
+shared:
+  description: >-
+    One-line description of what this agent does and when to spawn it.
+    Be specific — the orchestrator uses this to decide whether to delegate.
+
+platforms:
+  claude:
+    name: example-agent
+    tools: "Read, Write, Bash"
+    model: sonnet
+    maxTurns: 15
+  opencode:
+    mode: subagent
+    model: anthropic/claude-sonnet-4-20250514
+    temperature: 0.2
+    permission:
+      read: allow
+      edit: allow
+      bash: deny
+      webfetch: allow
+      websearch: allow
+
+prompt: |
+  You are a specialized agent. Your job is to [describe the task].
+
+  ## Instructions
+
+  Describe what the agent should do, step by step.
+
+  ## Output
+
+  Describe the expected output format and where to write it.
+
+  ## What to ignore
+
+  Describe what the agent should skip or not do.
